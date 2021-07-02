@@ -1,0 +1,4 @@
+win_bison -d .\parser.y
+win_flex .\scanner.l
+g++ parser.tab.c lex.yy.c -o run
+.\run
