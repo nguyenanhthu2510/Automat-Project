@@ -13,23 +13,9 @@ extern int yyparse();
 extern FILE *yyin;
 
 void yyerror(const char *s);
-bool keepgoing = true;
-
-/* Additional functions */
-void updateVal(char * s, int val);
-int result();
 
 /* Storage variable name */
-// list<string, int> ST;
-// list<string, int>::iterator st;
-list<string> ST;
-list<string>::iterator st;
-
-map<string, int> lst;
-map<string, int>::iterator it;
-
-list<char> op;
-list<char>::iterator opr;
+map<string, int> test;
 %}
 
 /* Tell bison to give descriptive error messages. */
@@ -48,26 +34,23 @@ list<char>::iterator opr;
 %token <str> NAME
 %token LP RP STOP
 
-%type <val> exp term sfactor factor sfactorz summary
+%type <val> exp term sfactor factor sfactorz 
 
 %start S
 %%
   /* Note: YYACCEPT is a macro that tells bison to stop parsing. */
 
 S:  
-    stmt
-    // { YYACCEPT; }
-    // {keepgoing = true;}
-    | { keepgoing = false; }
+    stmt STOP S
+    | 
 ;
 
 stmt:
-    summary
-    | exp STOP S
-;
-
-summary:
-    NAME ASN exp STOP S { updateVal($1, $3); }
+    NAME ASN exp { 
+      test[$1] = $3;
+      cout << test[$1] << endl;
+    }
+    | exp { cout << $1 << endl; }
 ;
 
 exp:
@@ -92,75 +75,10 @@ sfactor:
 
 factor:
     NUM { $$ = $1; }
-    | NAME oper NAME {
-      // if (std::find(ST.begin(), ST.end(), $1) == ST.end()) {
-      //   // cout << "hello $1 = " << $1 << endl;;
-      //   ST.push_back($1);
-      // }
-      // if (std::find(ST.begin(), ST.end(), $3) == ST.end()) {
-      //   // cout << "hello $3 = " << $3 << endl;
-      //   ST.push_back($3);
-      // }
-      ST.push_back($1);
-      ST.push_back($3);
-      // for(st = ST.begin(); st != ST.end(); ++st) {
-      //   cout << '\t' << *st << endl;
-      // }
-      // cout << '\t' << "----" << endl;
-    }
+    | NAME { $$ = test[$1]; cout << $1 << test[$1] << endl; }
     | LP exp RP { $$ = $2; }
 ;
-
-oper:
-    OPA {
-      if ($1 == '+') { op.push_back('+'); }
-      else { op.push_back('-'); }
-    }
-    | OPM {
-      if ($1 == '*') { op.push_back('*'); } 
-      else { op.push_back('/'); }
-    }
-    | REMAINER {
-      op.push_back('%');
-    }
-;
 %%
-
-void updateVal(char * s, int val) {
-    // lst.push_back(val);
-    // for(it = lst.begin(); it != lst.end(); ++it) {
-    //   cout << '\t' << *it;
-    // }
-    // cout << '\n';
-    lst[s] = val;
-}
-
-int result() {
-    int re = 0;
-    opr = op.begin();
-    for (st = ST.begin(); st != ST.end(); st++) {
-      it = lst.find(*st);
-      switch (*opr) {
-        case '+':
-          re = re + it->second;
-          break;
-        case '-':
-          re = re - it->second;
-          break;
-        case '*':
-          re = re * it->second;
-          break;
-        case '/':
-          re = re / it->second;
-          break;
-        case '%':
-          re = re % it->second;
-          break;
-      }
-      ++opr;
-    }
-    return re;
-}
 
 int main(int, char**) {
     // open a file handle to a particular file:
@@ -175,12 +93,9 @@ int main(int, char**) {
     // Set flex to read from it instead of defaulting to STDIN:
     yyin = myfile;
 
-    // initialize
-    op.push_back('+');
-
     // Parse through the input:
     yyparse();
-    cout << "result = " << result() << endl;
+
 }
 
 void yyerror(const char *s) {
