@@ -3,7 +3,7 @@ class Otomat:
         def __init__(self, end, input):
             self.end = end
             self.inp = input
-    
+     
     __states__ = list()
     __char__ = list()
     __start__ = ''

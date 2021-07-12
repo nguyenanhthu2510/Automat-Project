@@ -1,4 +1,4 @@
-from Otomat import *
+from Otomat import *  
 otomat = Otomat()
 otomat.addTransition('A', 'B', '0')
 otomat.addTransition('A', 'C', '1')
