@@ -1,0 +1,174 @@
+1. tạo đối tượng là phép chuyển: 
+	Transition(end, input)
+	
+2. tạo đối tượng otomat chứa phép chuyển: 
+	Otomat([states], [char], [end], [transitions])
+	các hàm get, set thuộc tính
+	các hàm quan trọng:
+	
+		def addTransition(self, s, f, char):
+			if s not in self.__states__:	// nếu s chưa có trong states
+				self.__states__.append(s)	// thêm s vào states
+				self.__transitions__.append(list())	// tạo một phép chuyển rỗng mới
+				
+			if f not in self.__states__:	// nếu f chưa có trong states
+				self.__states__.append(f)	// thêm f vào states
+				self.__transitions__.append(list())	// tạo một phép chuyển rỗng mới
+			
+			if char not in self.__char__:	// nếu char chưa có trong tập char chữ cái chính
+				self.__char__.append(char)	// thêm char vào
+
+			index = self.__states__.index(s)	// lấy vị trí index của s
+			lst = self.__transitions__[index]	// lấy [transitions] tại vị trí index tương ứng với từ s
+			for trans in lst:	// với mỗi phép chuyển trong [lst]
+				if trans.end == f:	// nếu từ kết của phép chuyển == f
+					trans.inp = char // đẩu vào của phép chuyển được gán == char
+					return	// dừng lặp (tìm)
+			self.__transitions__[index].append(self.Transition(f, char))	// thêm một phép chuyển mới ứng với đầu vào s
+			
+		def minimize(self):
+			P = list()	// ds chứa ds trạng thái kết và không kết
+			F = list()  # ds chua cac trang thai ket
+			SF = list() # ds chua cac trang thai khong ket
+			for s in self.__states__:	
+				if s in self.__end__:	
+					F.append(s)
+				else:
+					SF.append(s)
+			
+			P.append(F)
+			P.append(SF)
+			
+			# tim cac phan hoach cua P
+			newP = self.partition(P)
+			while newP != P:	// tìm các phân hoạch nhỏ nhất cảu P - phân hoạch là ds các lớp tương đương
+				P = newP
+				newP = self.partition(P)
+			# print("P is here", P)
+			print("newP is here", newP)
+
+			# khoi tao otomat toi tieu
+			otomat = Otomat()
+			n_state = ''
+			n_states = list()
+			n_start = ''
+			n_end = list()
+			n_transitions = list()
+
+			for Q in newP:  # voi moi phan hoach cua newP
+				print("Q", Q)
+				n_state = Q[0] # vi moi phan hoach dai dien cho 1 tap trang thai co ham chuyen giong nhau nen chi lay 1 trang thai
+				print(n_state)
+				n_states.append(n_state)
+				if self.__start__ in Q: # neu trang thai khoi tao bd co trong phan hoach
+					n_start = n_state   # lay trang thai co trong phan hoach chua trang thai bd vi chung co ham chuyen nhu nhau
+
+				# tim xem trong phan hoach Q co chua trang thai di ra cua transition cu nao hay ko
+				# neu co thi gan lai trang thai di ra do = trang thoi moi
+				for c in Q: # voi moi state trong phan hoach Q
+					for lst in self.__transitions__: # voi moi ds chua cac obj transitions
+						for trans in lst:   # voi moi obj trong ds
+							if trans.end == c:  # neu trang thai ra la trang thai co trong phan hoach Q 
+								trans.end = n_state # gan trang thai ra bang trang thai moi
+				
+				# tim xem trong phan hoach Q co chua trang thai ket cua transition cu nao hay ko
+				# neu co thi kiem tra neu trang thai moi chua co trong tap ket thuc thi append
+				for charQ in Q:
+					if charQ in self.__end__ :
+						if n_state not in n_end:
+							n_end.append(n_state)
+
+			for Q in newP:  # voi moi phan hoach cua newP
+				index = self.__states__.index(Q[0]) # lay index cua state trong phan hoach
+				newTransiton = self.__transitions__[index]  # lay obj trans tai vi tri index
+				n_transitions.append(newTransiton)  # append obj do vao mang transition moi
+
+			otomat.setStates(n_states)
+			otomat.setStart(n_start)
+			otomat.setChar(self.__char__)
+			otomat.setEnd(n_end)
+			otomat.setTransition(n_transitions)
+			return otomat
+    
+		def partition(self, P):
+			# = P = [ A[...], B[...], ...] mang 2 chieu
+			newP = P.copy()
+			for Q in P:
+				for s_i in Q:
+					for s_j in Q:
+						if s_i != s_j:
+							for a in self.getChar():
+								trans_p = self.getTransition(s_i, a)
+								trans_q = self.getTransition(s_j, a)
+								if not self.checkEquavalence(trans_p.end, trans_q.end, P):	// kiem tra các phép chuyển có tương đương nhau ko
+									self.separateState(s_i, s_j, newP, P)	// nếu ko cùng lớp tương đương -> tách
+			return newP
+		
+		def separateState(self, p, q, newP, P):
+			if not self.isDifferentPartition(p, q, newP):	// nếu p, q khác phân hoạch trong newP
+				q_lst = list()
+				q_lst.append(q)
+				for set in newP:
+					if p in set and q in set:
+						for state in set:
+							if state != p and state != q:
+								for a in self.__char__:
+									state_desti = self.getTransition(state, a).end
+									q_desti = self.getTransition(q, a).end
+									if state_desti != None and q_desti != None:
+										# kiem tra 2 ky tu co nam trong 1 phan hoach hoac co trung nhau khong
+										if self.isDifferentPartition(state_desti, q_desti, P) == 1: # neu nam khac phan hoach
+											q_lst.remove(state) # xoa
+											break
+										else:
+											if state not in q_lst:
+												q_lst.append(state)
+						for c in q_lst:
+							set.remove(c)
+						break
+				newP.append(q_lst)
+
+		def isDifferentPartition(self, p, q, P):  # kiem tra 2 ky tu co nam khac tap
+			for set in P:
+				for state in set:
+					if p == state and q in set:
+						return 0
+			return 1
+
+		def getTransition(self, start, input):
+			index = self.__states__.index(start)
+			transLst = self.getTransitions()[index]
+			for trans in transLst:
+				if trans.inp == input:
+					return trans
+			return None
+
+		def checkEquavalence(self, a, b, P): # kiem tra 2 ky tu co nam trong 1 phan hoach hoac co trung nhau khong
+			if a == b:
+				return True
+			for Q in P:
+				if a in Q and b in Q:
+					return True
+			return False
+			
+		def print_out(self):
+			print("States: ", end=" ")
+			for c in self.__states__:
+				print(c + " ", end=" ")
+
+			print('\n\n' + "Alphabet: ", end=" ")
+			for c in self.__char__:
+				print(c + " ", end=" ")
+
+			print('\n\n' + "Start state: " + self.__start__)
+			
+			print('\n' + "Finish state: ", end=" ")
+			for c in self.__end__:
+				print(c + " ", end=" ")
+
+			print('\n\n' + "Transitions: ")
+			for i in range(0, len(self.__states__)):
+				state = self.__states__[i]
+				lst = self.__transitions__[i]
+				for trans in lst:
+					print("(" + state + ", " + trans.inp + ") = " + trans.end)
